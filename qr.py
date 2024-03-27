@@ -7,20 +7,24 @@
 import sys
 import requests
 import json
-# import RPi.GPIO as io
+import RPi.GPIO as io
 import time
 from threading import Timer
 
 
 
 
-# io.setmode(io.BCM)
-# LED = 27
-# BUZZER = 22
-# RELAY = 17
-# io.setup(LED, io.OUT) # led connected to pin 17 
-# io.setup(BUZZER, io.OUT) # led connected to pin 17 
-# io.setup(RELAY, io.OUT) # led connected to pin 17 
+io.setmode(io.BCM)
+RED_LED = 27
+GREEN_LED = 25
+BUZZER = 22
+RELAY = 17
+
+#set GPIO pins 
+io.setup(RED_LED, io.OUT) 
+io.setup(GREEN_LED, io.OUT) 
+io.setup(BUZZER, io.OUT) 
+io.setup(RELAY, io.OUT) 
 
 
 api_key = "https://api.wod-worx.com/" 
@@ -54,8 +58,7 @@ def barcode_reader():
             29: 'Z', 30: '!', 31: '@', 32: '#', 33: '$', 34: '%', 35: '^', 36: '&', 37: '*', 38: '(', 39: ')', 44: ' ',
             45: '_', 46: '+', 47: '{', 48: '}', 49: '|', 51: ':', 52: '"', 53: '~', 54: '<', 55: '>', 56: '?'}
    
-    ## Open serial interface with HID QR reader
-    fp = open('/dev/hidraw0', 'rb')
+
     ss = ""
     shift = False
     done = False
@@ -137,8 +140,16 @@ def send_event(key,access_result):
         }
         response = requests.request("POST", url, headers=headers ,files =files)
         print(json.dumps(response.json(), indent=2))
-
         print("-----" * 5 + "\n")
+        if len(log_event)>0:
+            for events in log_event:
+                files = {
+                'accessKeyID': (None, events[0]),
+                'eventType': (None, events[1]),
+                }
+                response = requests.request("POST", url, headers=headers ,files =files)
+                log_event.shift()
+                
     except:
         ## incase of no coverage 
         log_event.append([key,access_result])
@@ -149,19 +160,46 @@ def send_event(key,access_result):
 def check_key(key):
     global list_of_key
     if key in list_of_key:
+        print("LOG : KEY EXIST")
+        io.output(GREEN_LED,io.HIGH)
+        io.output(RELAY,io.HIGH)
+        #beep for one second 1 time
+        io.output(BUZZER,io.HIGH)
+        time.sleep(1)
+        io.output(BUZZER,io.LOW)
+        io.output(GREEN_LED,io.LOW)
+        io.output(RELAY,io.LOW)
+
         return ACCESS_OK
     else:
+        print("LOG : KEY NOT EXIST")
+        io.output(RED_LED,io.HIGH)
+        #beep for one second 3 times
+        for i in range(3):
+            io.output(BUZZER,io.HIGH)
+            time.sleep(1)
+            io.output(BUZZER,io.LOW)
+        io.output(RED_LED,io.LOW)
         return ACCESS_REFUSED
 
 if __name__ == '__main__':
 
+    ## Open serial interface with HID QR reader
+    while True:
+        try:
+            fp = open('/dev/hidraw0', 'rb')
+            break
+        except Exception as e:
+            print(e)
     timerStart = Timer(10, get_keys)
     timerStart.start()
 
-    # try:
-    #     while True:
-    #         key = barcode_reader()
-    #         access_result = check_key(key)
-    #         send_event(key,access_result)
-    # except KeyboardInterrupt:
-    #     pass
+    
+    while True:
+            try:
+                key = barcode_reader()
+                print("LOG : QR CODE ", key)
+                access_result = check_key(key)
+                send_event(key,access_result)
+            except KeyboardInterrupt:
+                pass
