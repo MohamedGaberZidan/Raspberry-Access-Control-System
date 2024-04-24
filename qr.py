@@ -48,7 +48,7 @@ headers = {
 }
 
 ##QR reader result
-ACCESS_OK = "access-guaranteed"
+ACCESS_OK = "access-granted"
 ACCESS_REFUSED = "access-denied"
 
 
