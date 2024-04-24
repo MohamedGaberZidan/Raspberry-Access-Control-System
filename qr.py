@@ -11,8 +11,17 @@ import RPi.GPIO as io
 import time
 from threading import Timer
 
-
-
+import configparser
+ 
+##getting the configurations 
+config = configparser.ConfigParser()
+config.read('config.ini')
+try:
+    api_key_header = config['Section 1']['api_key']
+    device_id = config['Section 1']['device_id']
+except:
+    api_key_header = 'uyaclpQvUul4VGsp'
+    device_id = '668f802e4c4e11ecb8029600000a0cbd'
 
 io.setmode(io.BCM)
 RED_LED = 27
@@ -34,8 +43,8 @@ list_of_key = []
 log_event = []
 ## database variables
 headers = {
-    'HTTP_X_ORG_API_KEY': 'uyaclpQvUul4VGsp',
-    'HTTP_X_DEVICE_ID': '668f802e4c4e11ecb8029600000a0cbd'
+    'HTTP_X_ORG_API_KEY':api_key_header, # 'uyaclpQvUul4VGsp',
+    'HTTP_X_DEVICE_ID': device_id # '668f802e4c4e11ecb8029600000a0cbd'
 }
 
 ##QR reader result
